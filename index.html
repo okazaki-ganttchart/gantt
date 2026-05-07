@@ -698,16 +698,24 @@ function mergeRemote(data) {
     }
     if (d.komas) {
       const entries = Object.entries(d.komas);
-      while (STATE[ch.id].length < entries.length) STATE[ch.id].push(newKoma());
+      if (STATE[ch.id].length < entries.length) {
+        while (STATE[ch.id].length < entries.length) STATE[ch.id].push(newKoma());
+        if (ch.id === curSubjId) dirty = true;  // コマ数増加 → 必ずrender()
+      }
       entries.forEach(([ki,kd]) => {
         const k=+ki; if (!STATE[ch.id][k]) return;
         if (kd.label!==undefined && kd.label!==STATE[ch.id][k].label) {
           STATE[ch.id][k].label=kd.label||'';
           if (ch.id===curSubjId) {
             const labelEl = document.querySelector(`.koma-title-input[data-ki="${k}"][data-tn="${ch.id}"][data-type="label"]`);
-            if (labelEl && document.activeElement !== labelEl) labelEl.value = kd.label||'';
+            if (labelEl && document.activeElement !== labelEl) {
+              labelEl.value = kd.label||'';
+            } else if (!labelEl) {
+              // DOMにまだlabelElがない = 新コマ → render()が必要
+              dirty = true;
+            }
           }
-          // dirty=trueにしない（render()させない）
+          // 既存コマのlabelはDOMを直接更新してrender()しない
         }
         // locationの同期（DOM直接更新）
         if (kd.location!==undefined && kd.location!==(STATE[ch.id][k].location||'')) {
